@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Audicords Live Chat</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#fbf7ef}
+.chat{max-width:500px;height:100vh;margin:auto;background:white;display:flex;flex-direction:column}
+.head{background:#131c30;color:white;padding:18px;font-size:20px;font-weight:bold}
+.head small{display:block;font-size:12px;opacity:.7;margin-top:4px}
+.msgs{flex:1;overflow:auto;padding:15px;background:#fbf7ef}
+.m{padding:10px 13px;border-radius:10px;margin:8px 0;max-width:80%;line-height:1.4}
+.me{background:white;border:1px solid #ddd}.admin{background:#c31432;color:white;margin-left:auto}
+.form{padding:14px;border-top:1px solid #ddd}
+input,textarea{width:100%;padding:11px;margin-bottom:8px;border:1px solid #ccc;border-radius:7px}
+textarea{height:70px}button{width:100%;padding:12px;border:0;border-radius:7px;background:#c31432;color:white;font-weight:bold}
+</style>
+</head>
+<body>
+
+<div class="chat">
+<div class="head">Audicords Live Chat<small>We are here to help</small></div>
+<div class="msgs" id="msgs"></div>
+
+<div class="form">
+<input id="name" placeholder="Your Name">
+<input id="email" type="email" placeholder="Your Email">
+<textarea id="text" placeholder="Write your message..."></textarea>
+<button onclick="send()">Send Message</button>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL="https://vajgazaroqefeuurfcnx.supabase.co";
+const KEY="sb_publishable_UQ9_b-WTCG1YyTRZasS8SQ_5WFmWyHV";
+const db=supabase.createClient(URL,KEY);
+
+let cid=localStorage.getItem("audicords_chat");
+if(!cid){cid=crypto.randomUUID();localStorage.setItem("audicords_chat",cid)}
+
+const msgs=document.getElementById("msgs");
+
+function show(t,c){
+let d=document.createElement("div");
+d.className="m "+c;
+d.textContent=t;
+msgs.appendChild(d);
+msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function load(){
+const {data}=await db.from("messages")
+.select("*").eq("conversation_id",cid)
+.order("created_at",{ascending:true});
+
+msgs.innerHTML="";
+if(data) data.forEach(x=>{
+show(x.message,"me");
+if(x.reply) show(x.reply,"admin");
+});
+}
+
+async function send(){
+let name=document.getElementById("name").value.trim();
+let email=document.getElementById("email").value.trim();
+let text=document.getElementById("text").value.trim();
+
+if(!name||!email||!text){alert("Please fill all fields.");return}
+
+const {error}=await db.from("messages").insert({
+conversation_id:cid,name,email,message:text
+});
+
+if(error){alert(error.message);return}
+
+document.getElementById("text").value="";
+load();
+}
+
+load();
+setInterval(load,5000);
+</script>
+</body>
+</html>
